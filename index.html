@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>空間認知トレーニング</title>
+  <style>
+    /* ベーススタイル・iPad最適化（テキスト選択防止、タップハイライト無効） */
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+      font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', 'Meiryo', sans-serif;
+    }
+
+    body {
+      background-color: #f7f9fa;
+      color: #333;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 画面切り替え用 */
+    .screen {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-color: #f7f9fa;
+    }
+    .screen.active {
+      display: flex;
+    }
+
+    /* タイポグラフィ */
+    h1 {
+      font-size: clamp(3rem, 6vw, 5rem);
+      margin-bottom: 10px;
+      color: #5D4037;
+      text-align: center;
+    }
+    .subtitle {
+      font-size: 1.5rem;
+      color: #795548;
+      margin-bottom: 40px;
+    }
+    h2 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      color: #5D4037;
+    }
+
+    /* ゲーム画面UI */
+    #question-text {
+      font-size: 1.6rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-align: center;
+      background-color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      border: 3px solid #eee;
+      max-width: 90%;
+    }
+    .highlight {
+      color: #E65100;
+      font-size: 110%;
+    }
+
+    /* グリッド（棚・冷蔵庫など） */
+    #grid-container {
+      display: grid;
+      gap: 15px;
+      padding: 20px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      width: 85vw;
+      max-width: 700px;
+      height: 55vh;
+      min-height: 400px;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .grid-shelf { background-color: #EFEBE9; border: 12px solid #D7CCC8; }
+    .grid-fridge { background-color: #E3F2FD; border: 12px solid #BBDEFB; }
+    .grid-toybox { background-color: #F1F8E9; border: 12px solid #C8E6C9; }
+
+    .grid-cell {
+      background-color: rgba(255, 255, 255, 0.85);
+      border-radius: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: min(10vw, 10vh);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    /* 選択肢ボタン群 */
+    #choices-container {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 95vw;
+      max-width: 800px;
+    }
+
+    .choice-btn {
+      position: relative;
+      background-color: white;
+      border: 4px solid #FFCDD2;
+      border-radius: 15px;
+      padding: 10px 20px;
+      font-weight: bold;
+      color: #333;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #FFCDD2, 0 10px 10px rgba(0,0,0,0.1);
+      transition: transform 0.1s, box-shadow 0.1s;
+      touch-action: manipulation;
+      min-width: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .choice-btn:active {
+      transform: translateY(6px);
+      box-shadow: 0 0 0 #FFCDD2, 0 4px 4px rgba(0,0,0,0.1);
+    }
+
+    /* メインボタン */
+    .primary-btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 20px 50px;
+      font-size: 2.5rem;
+      font-weight: bold;
+      box-shadow: 0 8px 0 #388E3C, 0 15px 20px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      touch-action: manipulation;
+      margin: 15px;
+    }
+    .primary-btn:active {
+      transform: translateY(8px);
+      box-shadow: 0 0 0 #388E3C, 0 5px 10px rgba(0,0,0,0.2);
+    }
+
+    .secondary-btn {
+      background-color: #9E9E9E;
+      box-shadow: 0 8px 0 #757575, 0 15px 20px rgba(0,0,0,0.2);
+    }
+    .secondary-btn:active {
+      box-shadow: 0 0 0 #757575, 0 5px 10px rgba(0,0,0,0.2);
+    }
+
+    /* 設定用 歯車ボタン (画面右下に配置) */
+    .gear-btn {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 2.5rem;
+      opacity: 0.15;
+      cursor: pointer;
+      padding: 15px;
+      touch-action: manipulation;
+      border-radius: 50%;
+      transition: opacity 0.2s, background-color 0.2s;
+    }
+    .gear-btn:active {
+      opacity: 0.5;
+      background-color: rgba(0,0,0,0.05);
+    }
+
+    /* 正誤フィードバック */
+    .correct-mark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8rem;
+      color: #4CAF50;
+      text-shadow: 0 0 20px rgba(255,255,255,0.9);
+      pointer-events: none;
+      animation: popOut 1s ease-out forwards;
+      z-index: 10;
+    }
+
+    @keyframes popOut {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -150%) scale(1.2); opacity: 0; }
+    }
+
+    /* 設定画面（オーバーレイ） */
+    .overlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+    .overlay.active {
+      display: flex;
+    }
+
+    .settings-content {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      width: 90vw;
+      max-width: 650px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .setting-group {
+      margin-bottom: 25px;
+    }
+    .setting-group > label {
+      display: block;
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #555;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 5px;
+    }
+
+    .setting-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .opt-btn {
+      padding: 12px 20px;
+      border: 3px solid #ddd;
+      background: #f9f9f9;
+      border-radius: 12px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      touch-action: manipulation;
+    }
+    .opt-btn.selected {
+      border-color: #29B6F6;
+      background-color: #E1F5FE;
+      color: #0277BD;
+    }
+
+    .close-btn {
+      background-color: #FF9800;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 18px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 6px 0 #F57C00;
+      margin-top: 10px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .close-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #F57C00;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. スタート画面 -->
+  <div id="screen-start" class="screen active">
+    <h1>空間認知トレーニング</h1>
+    <div class="subtitle">上下左右・グリッド</div>
+    <button class="primary-btn" onclick="startGame()">スタート</button>
+    <button class="primary-btn secondary-btn" onclick="showSettings()">設定</button>
+  </div>
+
+  <!-- 2. ゲーム画面 -->
+  <div id="screen-game" class="screen">
+    <div id="question-text"></div>
+    
+    <div id="grid-container"></div>
+    <div id="choices-container"></div>
+    
+    <button class="gear-btn" onclick="showSettings()">⚙️</button>
+  </div>
+
+  <!-- 3. 結果画面 -->
+  <div id="screen-result" class="screen">
+    <h2>結果発表</h2>
+    <div id="score-display" style="text-align: center; margin-bottom: 30px;"></div>
+    <button class="primary-btn" onclick="startGame()">もう一度</button>
+    <button class="primary-btn secondary-btn" onclick="showScreen('screen-start')">タイトルへ</button>
+  </div>
+
+  <!-- 設定画面（オーバーレイ表示） -->
+  <div id="screen-settings" class="overlay">
+    <div class="settings-content">
+      <h2 style="margin-bottom: 15px; font-size: 2.5rem;">設定</h2>
+      <div id="settings-list"></div>
+      <button class="close-btn" onclick="closeSettings()">決定 / 最初から</button>
+    </div>
+  </div>
+
+  <script>
+    /* --- データ定義 --- */
+    const EMOJIS = {
+      shelf: ['👕', '👖', '👗', '👟', '👒', '🎒', '📚', '🕰️', '🧸', '🪴', '🖼️', '☂️', '🧢', '🧣', '🧤', '💼'],
+      fridge: ['🍎', '🍌', '🍇', '🍓', '🥕', '🥦', '🧀', '🥚', '🥩', '🍗', '🥛', '🧃', '🍰', '🍮', '🍉', '🐟'],
+      toybox: ['🚗', '✈️', '🚀', '🚂', '🚤', '🧸', '🪀', '🪁', '🧩', '🎮', '🎲', '🥁', '🎺', '🎨', '🤖', '⚽️']
+    };
+
+    /* --- 状態管理 --- */
+    let state = {
+      currentQuestion: 1,
+      score: 0,
+      questionData: null,
+      isProcessing: false,
+      hasMistaked: false // リベンジ対応：その問題で一度でも間違えたかのフラグ
+    };
+
+    let settings = {
+      mode: 'find_item',       // 'find_item' (ものをあてる), 'find_place' (ばしょをあてる)
+      situation: 'shelf',      // 'shelf', 'fridge', 'toybox', 'random'
+      gridSize: '2x2',         // '2x1', '1x2', '2x2', '3x3'
+      questionCount: 10,       // 5, 10, 15
+      choicesCount: 4          // 2, 4
+    };
+
+    let audioCtx;
+
+    /* --- 初期化 --- */
+    window.onload = () => {
+      // ユーザーの初回タップでAudioContextを初期化
+      document.body.addEventListener('touchstart', initAudio, { once: true });
+      document.body.addEventListener('click', initAudio, { once: true });
+      renderSettingsUI();
+    };
+
+    /* --- 音声処理 (Web Audio API) --- */
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'correct') {
+        // ピンポン音
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      } else {
+        // ブー音
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+    }
+
+    /* --- ユーティリティ --- */
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    /* --- ロジック --- */
+    // インデックスとグリッドサイズから「場所の名前」を生成する
+    function getPlaceName(index, gridSizeStr) {
+      if (gridSizeStr === '2x1') {
+        return index === 0 ? '上の段' : '下の段';
+      } else if (gridSizeStr === '1x2') {
+        return index === 0 ? '左' : '右';
+      } else if (gridSizeStr === '2x2') {
+        const rowName = index < 2 ? '上の段' : '下の段';
+        const colName = index % 2 === 0 ? '左' : '右';
+        return `${rowName}の ${colName}`;
+      } else if (gridSizeStr === '3x3') {
+        const row = Math.floor(index / 3);
+        const col = index % 3;
+        const rowName = row === 0 ? '上の段' : row === 1 ? 'まん中の段' : '下の段';
+        const colName = col === 0 ? '左' : col === 1 ? 'まん中' : '右';
+        return `${rowName}の ${colName}`;
+      }
+    }
+
+    function generateQuestion() {
+      const sizeMap = { '2x1': {r:2, c:1}, '1x2': {r:1, c:2}, '2x2': {r:2, c:2}, '3x3': {r:3, c:3} };
+      const size = sizeMap[settings.gridSize];
+      const totalCells = size.r * size.c;
+
+      // ゲームモードの決定（ランダム対応）
+      let currentMode = settings.mode;
+      if (currentMode === 'random') {
+        currentMode = Math.random() < 0.5 ? 'find_item' : 'find_place';
+      }
+
+      // テーマ決定
+      let theme = settings.situation;
+      if (theme === 'random') {
+        const themes = ['shelf', 'fridge', 'toybox'];
+        theme = themes[Math.floor(Math.random() * themes.length)];
+      }
+
+      // 絵文字取得とシャッフル
+      const availableEmojis = [...EMOJIS[theme]];
+      shuffleArray(availableEmojis);
+      const gridItems = availableEmojis.slice(0, totalCells);
+
+      // 正解の決定
+      const targetIndex = Math.floor(Math.random() * totalCells);
+      const targetEmoji = gridItems[targetIndex];
+      const targetPlace = getPlaceName(targetIndex, settings.gridSize);
+
+      // 選択肢の生成
+      let choices = [];
+      if (currentMode === 'find_item') {
+        // --- ものをあてる (選択肢は絵文字) ---
+        choices.push(targetEmoji);
+        // 不正解の選択肢を作成（グリッド内の他のアイテムを優先し、足りなければ他の絵文字から）
+        const otherGridEmojis = gridItems.filter((_, i) => i !== targetIndex);
+        shuffleArray(otherGridEmojis);
+        const remainingEmojis = availableEmojis.filter(e => !gridItems.includes(e));
+        shuffleArray(remainingEmojis);
+
+        const needed = settings.choicesCount - 1;
+        const pool = [...otherGridEmojis, ...remainingEmojis];
+        for(let i = 0; i < needed && i < pool.length; i++) {
+          choices.push(pool[i]);
+        }
+      } else {
+        // --- ばしょをあてる (選択肢は場所のテキスト) ---
+        choices.push(targetPlace);
+        let allPlaces = [];
+        for(let i = 0; i < totalCells; i++) {
+          allPlaces.push(getPlaceName(i, settings.gridSize));
+        }
+        const otherPlaces = allPlaces.filter(p => p !== targetPlace);
+        shuffleArray(otherPlaces);
+        
+        // グリッド数が少ない場合、4択設定でも自動的に最大数（2択等）に制限する
+        const needed = settings.choicesCount - 1;
+        for(let i = 0; i < needed && i < otherPlaces.length; i++) {
+          choices.push(otherPlaces[i]);
+        }
+      }
+      shuffleArray(choices);
+
+      return { theme, gridItems, targetIndex, targetEmoji, targetPlace, choices, rows: size.r, cols: size.c, currentMode: currentMode };
+    }
+
+    /* --- ゲーム進行 --- */
+    function startGame() {
+      initAudio();
+      state.currentQuestion = 1;
+      state.score = 0;
+      nextQuestion();
+      showScreen('screen-game');
+    }
+
+    function nextQuestion() {
+      state.hasMistaked = false; // 問題が変わるごとにリセット
+      state.questionData = generateQuestion();
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const qData = state.questionData;
+      const qTextEl = document.getElementById('question-text');
+      
+      if (qData.currentMode === 'find_item') {
+        qTextEl.innerHTML = `<span class="highlight">「${qData.targetPlace}」</span>には 何がありますか？`;
+      } else {
+        qTextEl.innerHTML = `<span class="highlight">「${qData.targetEmoji}」</span>は どこにありますか？`;
+      }
+
+      // グリッド描画
+      const gridEl = document.getElementById('grid-container');
+      gridEl.className = `grid-${qData.theme}`;
+      gridEl.style.gridTemplateColumns = `repeat(${qData.cols}, 1fr)`;
+      gridEl.style.gridTemplateRows = `repeat(${qData.rows}, 1fr)`;
+      gridEl.innerHTML = '';
+
+      qData.gridItems.forEach(item => {
+        const cell = document.createElement('div');
+        cell.className = 'grid-cell';
+        cell.textContent = item;
+        gridEl.appendChild(cell);
+      });
+
+      // 選択肢描画
+      const choicesContainer = document.getElementById('choices-container');
+      choicesContainer.innerHTML = '';
+      
+      qData.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = choice;
+        // モードによってフォントサイズ調整（絵文字は大きく）
+        if (qData.currentMode === 'find_item') {
+          btn.style.fontSize = '3.5rem';
+        } else {
+          btn.style.fontSize = '1.8rem';
+        }
+        btn.onclick = (e) => handleChoice(choice, e.currentTarget);
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    function handleChoice(selectedChoice, btnElement) {
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+
+      const qData = state.questionData;
+      const isCorrect = (qData.currentMode === 'find_item' && selectedChoice === qData.targetEmoji) ||
+                        (qData.currentMode === 'find_place' && selectedChoice === qData.targetPlace);
+
+      // フィードバック表示と音声
+      if (isCorrect) {
+        // 1発正解の場合のみスコア加算
+        if (!state.hasMistaked) {
+          state.score++;
+        }
+        playSound('correct');
+        const mark = document.createElement('div');
+        mark.className = 'correct-mark';
+        mark.textContent = '◯';
+        btnElement.appendChild(mark);
+
+        // 正解した場合は次の問題または結果へ進む
+        setTimeout(() => {
+          state.currentQuestion++;
+          if (state.currentQuestion > settings.questionCount) {
+            renderResult();
+            showScreen('screen-result');
+          } else {
+            nextQuestion();
+          }
+          state.isProcessing = false;
+        }, 1200);
+
+      } else {
+        // 不正解の場合（リベンジ処理）
+        state.hasMistaked = true;
+        playSound('wrong');
+        
+        // 選んだボタンを薄くして押せなくする
+        btnElement.style.opacity = '0.4';
+        btnElement.style.pointerEvents = 'none';
+
+        // すぐに再選択可能にする
+        setTimeout(() => {
+          state.isProcessing = false;
+        }, 300);
+      }
+    }
+
+    function renderResult() {
+      const display = document.getElementById('score-display');
+      display.innerHTML = `
+        <p style="font-size: 2.5rem; color: #777;">${settings.questionCount}問中</p>
+        <p style="font-size: 6rem; color: #E65100; font-weight: bold; margin-top: 10px;">${state.score}問 正解！</p>
+      `;
+    }
+
+    /* --- 設定画面 --- */
+    function showSettings() {
+      initAudio();
+      document.getElementById('screen-settings').classList.add('active');
+      renderSettingsUI();
+    }
+
+    function closeSettings() {
+      document.getElementById('screen-settings').classList.remove('active');
+      // 設定を変えた場合は1問目からやり直すのが自然なため再スタート
+      startGame();
+    }
+
+    function setOption(key, value) {
+      settings[key] = value;
+      renderSettingsUI();
+    }
+
+    function renderSettingsUI() {
+      const groups = [
+        { key: 'mode', label: 'ゲームモード', options: [{v:'find_item', l:'「もの」をあてる'}, {v:'find_place', l:'「ばしょ」をあてる'}, {v:'random', l:'ランダム'}] },
+        { key: 'situation', label: 'シチュエーション', options: [{v:'shelf', l:'棚'}, {v:'fridge', l:'冷蔵庫'}, {v:'toybox', l:'おもちゃ箱'}, {v:'random', l:'ランダム'}] },
+        { key: 'gridSize', label: 'グリッドサイズ', options: [{v:'2x1', l:'2段×1列 (上下)'}, {v:'1x2', l:'1段×2列 (左右)'}, {v:'2x2', l:'2×2'}, {v:'3x3', l:'3×3'}] },
+        { key: 'questionCount', label: '問題数', options: [{v:5, l:'5問'}, {v:10, l:'10問'}, {v:15, l:'15問'}] },
+        { key: 'choicesCount', label: '選択肢の数', options: [{v:2, l:'2択'}, {v:4, l:'4択'}] }
+      ];
+
+      const container = document.getElementById('settings-list');
+      container.innerHTML = '';
+
+      groups.forEach(g => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'setting-group';
+        
+        const label = document.createElement('label');
+        label.textContent = g.label;
+        groupDiv.appendChild(label);
+
+        const optsDiv = document.createElement('div');
+        optsDiv.className = 'setting-options';
+
+        g.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'opt-btn' + (settings[g.key] === opt.v ? ' selected' : '');
+          btn.textContent = opt.l;
+          btn.onclick = () => setOption(g.key, opt.v);
+          optsDiv.appendChild(btn);
+        });
+        groupDiv.appendChild(optsDiv);
+        container.appendChild(groupDiv);
+      });
+    }
+  </script>
+</body>
+</html>

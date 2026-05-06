@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>空間認知トレーニング</title>
+  <title>上下左右、どこだ</title>
   <style>
     /* ベーススタイル・iPad最適化（テキスト選択防止、タップハイライト無効） */
     * {
@@ -48,15 +48,10 @@
 
     /* タイポグラフィ */
     h1 {
-      font-size: clamp(3rem, 6vw, 5rem);
-      margin-bottom: 10px;
-      color: #5D4037;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      margin-bottom: 30px;
+      color: #03A9F4;
       text-align: center;
-    }
-    .subtitle {
-      font-size: 1.5rem;
-      color: #795548;
-      margin-bottom: 40px;
     }
     h2 {
       font-size: 3rem;
@@ -297,8 +292,7 @@
 
   <!-- 1. スタート画面 -->
   <div id="screen-start" class="screen active">
-    <h1>空間認知トレーニング</h1>
-    <div class="subtitle">上下左右・グリッド</div>
+    <h1>上下左右、どこだ</h1>
     <button class="primary-btn" onclick="startGame()">スタート</button>
     <button class="primary-btn secondary-btn" onclick="showSettings()">設定</button>
   </div>
@@ -315,7 +309,6 @@
 
   <!-- 3. 結果画面 -->
   <div id="screen-result" class="screen">
-    <h2>結果発表</h2>
     <div id="score-display" style="text-align: center; margin-bottom: 30px;"></div>
     <button class="primary-btn" onclick="startGame()">もう一度</button>
     <button class="primary-btn secondary-btn" onclick="showScreen('screen-start')">タイトルへ</button>
@@ -351,7 +344,7 @@
       mode: 'find_item',       // 'find_item' (ものをあてる), 'find_place' (ばしょをあてる)
       situation: 'shelf',      // 'shelf', 'fridge', 'toybox', 'random'
       gridSize: '2x2',         // '2x1', '1x2', '2x2', '3x3'
-      questionCount: 10,       // 5, 10, 15
+      questionCount: 5,        // 5, 10, 15
       choicesCount: 4          // 2, 4
     };
 
@@ -500,7 +493,17 @@
           choices.push(otherPlaces[i]);
         }
       }
-      shuffleArray(choices);
+      
+      // 1段x2列の「ばしょをあてる」場合は「左」「右」の順に固定し、それ以外はシャッフルする
+      if (currentMode === 'find_place' && settings.gridSize === '1x2') {
+        choices.sort((a, b) => {
+          if (a === '左') return -1;
+          if (b === '左') return 1;
+          return 0;
+        });
+      } else {
+        shuffleArray(choices);
+      }
 
       return { theme, gridItems, targetIndex, targetEmoji, targetPlace, choices, rows: size.r, cols: size.c, currentMode: currentMode };
     }
